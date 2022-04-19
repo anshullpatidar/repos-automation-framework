@@ -7,3 +7,4 @@ dohq-artifactory
 requests-toolbelt
 xmltodict
 pytest-html
+pyyaml
