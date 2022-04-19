@@ -1,0 +1,9 @@
+pytest
+selenium
+openpyxl
+python3-xlib
+requests
+dohq-artifactory
+requests-toolbelt
+xmltodict
+pytest-html

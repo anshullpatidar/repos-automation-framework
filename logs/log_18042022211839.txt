@@ -1,0 +1,4 @@
+2022-04-18 21:19:19,422|INFO|Capture repo's name and description from UI
+2022-04-18 21:19:22,663|INFO|Get the repo's name and descirption from api
+2022-04-18 21:19:23,316|INFO|Convert api response to dictionary
+2022-04-18 21:19:23,316|INFO|Compare api response with ui response

@@ -1,0 +1,111 @@
+stages:
+  - package
+  - test
+
+variables:
+  DOCKER_IMAGE:
+
+build-and-push-docker:
+  stage: package
+  script:
+    - docker login -u $ARTIFACTORY_USER -p $ARTIFACTORY_USER_PASSWORD $NCR_REGISTRY
+    - docker build -t $DOCKER_IMAGE $CI_PROJECT_DIR
+    - docker push $DOCKER_IMAGE
+  only:
+    refs:
+      - branches
+    changes:
+      - Dockerfile
+      - requirements.txt
+
+performance_test:
+  stage: test
+  image: ${DOCKER_IMAGE}
+  variables:
+    TEST_ENV: $TEST_ENV
+  script:
+  - ls -lt
+#  - cd tests
+  - echo "*******Executing Scripts on environment :- " $TEST_ENV
+  - python3 -m pytest -m $TEST_TYPE
+  allow_failure: true
+  artifacts:
+    paths:
+      - reports/*
+    expire_in: 1 day
+    when: always
+  only:
+    refs:
+      - master
+  when: always
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "push"
+
+run_api_tests:
+  before_script:
+    - python -v
+    - pip install virtualenv
+    - virtualenv venv
+    - source venv/bin/activate
+    - pip install locustio==0.14.6
+    - pip install greenlet==0.4.16
+    - pip install pandas
+    - pip install bs4
+    - pip install requests-toolbelt
+    - pip install beautifulsoup4
+    - pip install pyyaml
+
+  image: joyzoursky/python-chromedriver:3.7
+  stage: execute_api
+  variables:
+   TEST_ENV: $EXECUTION_ENV
+  tags:
+  script:
+     - echo "********************************Execution Locust Performance Test on:- " $EXECUTION_ENV
+     - locust -f tests/locustfile.py  --csv=api_data --no-web -c 1 -r 1 --run-time 3m --host 10.66.38.152
+
+  artifacts:
+    paths:
+      - api_data_stats.csv
+    expire_in: 30 day
+    when: always
+  when: always
+  only:
+    - master
+    - triggers
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "push"
+      - $TEST_ENV == "prod-1a"
+
+
+push_data:
+  image: ${DOCKER_IMAGE}
+  stage: push_data
+  variables:
+   TEST_ENV: $EXECUTION_ENV
+  #image: python:3.7.0
+#  tags:
+#     - rancher2
+  script:
+    - echo $EXECUTION_ENV
+    - echo $TEST_ENV
+    - python3 convertcsvtojson.py
+    - ls -a
+    - python3 push_api_data.py
+
+  artifacts:
+    paths:
+      - api_data_stats.json
+      - api_performance_data.json
+    expire_in: 30 day
+    when: always
+  when: on_success
+  only:
+    - master
+    - triggers
+  except:
+    variables:
+      - $CI_PIPELINE_SOURCE == "push"
+      - $TEST_ENV == "prod-1a"

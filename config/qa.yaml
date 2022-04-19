@@ -1,0 +1,6 @@
+service:
+  hostName: https://github.com/orgs/django/repositories
+
+uiTest:
+  browser: chrome
+  headless: False
